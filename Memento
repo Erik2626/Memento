@@ -1,0 +1,147 @@
+import java.util.Deque;
+import java.util.LinkedList;
+final class MementoEditor {
+    private final String contenido;
+    private final int cursor;
+    private final String formato;
+
+    public MementoEditor(String contenido, int cursor, String formato) {
+        this.contenido = contenido;
+        this.cursor = cursor;
+        this.formato = formato;
+    }
+
+    public String getContenido() { return contenido; }
+    public int getCursor() { return cursor; }
+    public String getFormato() { return formato; }
+}
+
+class Historial {
+    private final Deque<MementoEditor> historial = new LinkedList<>();
+    private static final int LIMITE = 10;
+
+    public void guardar(MementoEditor memento) {
+        if (historial.size() == LIMITE) {
+            historial.removeFirst(); // elimina el más antiguo
+        }
+        historial.addLast(memento);
+    }
+
+    public MementoEditor deshacer() {
+        if (historial.isEmpty()) {
+            System.out.println("No hay operaciones para deshacer");
+            return null;
+        }
+        return historial.removeLast();
+    }
+
+    public boolean estaVacio() {
+        return historial.isEmpty();
+    }
+}
+
+class EditorTexto {
+    private String contenido;
+    private int cursor;
+    private String formato;
+
+    private final Historial historial;
+
+    public EditorTexto() {
+        this.contenido = "";
+        this.cursor = 0;
+        this.formato = "normal";
+        this.historial = new Historial();
+    }
+
+    // Crear y guardar el estado actual antes de modificarlo
+    private void guardarEstado() {
+        historial.guardar(new MementoEditor(contenido, cursor, formato));
+    }
+
+    public void escribir(String texto) {
+        guardarEstado();
+        // Insertar texto en la posición actual del cursor
+        String antes = contenido.substring(0, cursor);
+        String despues = contenido.substring(cursor);
+        contenido = antes + texto + despues;
+        cursor += texto.length();
+    }
+
+    public void borrar(int numCaracteres) {
+        if (numCaracteres <= 0) return;
+        if (cursor == 0) {
+            System.out.println("No hay texto para borrar");
+            return;
+        }
+        if (numCaracteres > cursor) {
+            System.out.println("No puedes borrar más caracteres de los que existen");
+            return;
+        }
+        guardarEstado();
+        contenido = contenido.substring(0, cursor - numCaracteres) + contenido.substring(cursor);
+        cursor -= numCaracteres;
+    }
+
+    public void moverCursor(int posicion) {
+        if (posicion < 0 || posicion > contenido.length()) {
+            System.out.println("Posición de cursor inválida");
+            return;
+        }
+        guardarEstado();
+        cursor = posicion;
+    }
+
+    public void cambiarFormato(String formato) {
+        if (!formato.equals("normal") && !formato.equals("negrita") && !formato.equals("cursiva")) {
+            System.out.println("Formato no válido");
+            return;
+        }
+        guardarEstado();
+        this.formato = formato;
+    }
+
+    public void deshacer() {
+        if (historial.estaVacio()) {
+            System.out.println("No hay operaciones para deshacer");
+            return;
+        }
+        MementoEditor anterior = historial.deshacer();
+        if (anterior != null) {
+            this.contenido = anterior.getContenido();
+            this.cursor = anterior.getCursor();
+            this.formato = anterior.getFormato();
+        }
+    }
+
+    public void mostrarEstado() {
+        System.out.println("Texto: \"" + contenido + "\"");
+        System.out.println("Cursor en posición: " + cursor);
+        System.out.println("Formato actual: " + formato);
+        System.out.println("-----------------------------");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        EditorTexto editor = new EditorTexto();
+
+        editor.escribir("Hola ");
+        editor.escribir("mundo");
+        editor.mostrarEstado();
+
+        editor.borrar(3);
+        editor.mostrarEstado();
+
+        editor.cambiarFormato("negrita");
+        editor.mostrarEstado();
+
+        System.out.println("Deshacer último cambio:");
+        editor.deshacer();
+        editor.mostrarEstado();
+
+        System.out.println("Deshacer otra vez:");
+        editor.deshacer();
+        editor.mostrarEstado();
+    }
+}
